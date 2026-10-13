@@ -3,7 +3,38 @@
 <head><title>Dashboard</title></head>
 <body>
     <h2>Welcome, {{ name }}</h2>
-    <p>Waste request form will come here in the next step.</p>
     <a href="/logout">Logout</a>
+
+    <h3>New waste collection request</h3>
+    <form method="POST" action="/request">
+        Stop:
+        <select name="stop_id">
+            {% for s in stops %}
+            <option value="{{ s[0] }}">{{ s[1] }}</option>
+            {% endfor %}
+        </select><br><br>
+        Waste type:
+        <select name="waste_type">
+            <option>General</option>
+            <option>Wet</option>
+            <option>Hazardous</option>
+        </select><br><br>
+        Quantity (kg): <input type="number" name="quantity" min="1" required><br><br>
+        <button type="submit">Submit request</button>
+    </form>
+
+    <h3>My requests</h3>
+    <table border="1" cellpadding="5">
+        <tr>
+            <th>ID</th><th>Stop</th><th>Waste</th><th>Kg</th>
+            <th>Arrival</th><th>Burst</th><th>Priority</th><th>Status</th>
+        </tr>
+        {% for r in requests %}
+        <tr>
+            <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
+            <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td><td>{{ r[7] }}</td>
+        </tr>
+        {% endfor %}
+    </table>
 </body>
 </html>
