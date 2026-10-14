@@ -3,7 +3,13 @@
 <head><title>Dashboard</title></head>
 <body>
     <h2>Welcome, {{ name }}</h2>
-    <a href="/logout">Logout</a>
+    <a href="/logout">Logout</a> |
+<a href="/results">View results</a>
+
+<h3>Scheduler</h3>
+<form method="POST" action="/run_scheduler">
+    <button type="submit">Run scheduler on pending requests</button>
+</form>
 
     <h3>New waste collection request</h3>
     <form method="POST" action="/request">

@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, session
 from werkzeug.security import generate_password_hash, check_password_hash
 import mysql.connector
 import time
+import subprocess
 
 app = Flask(__name__)
 app.secret_key = "ecotech_secret"      # needed for login sessions
@@ -23,6 +24,54 @@ def get_db():
         database="waste_db"
     )
 
+def choose_algorithm(rows):
+    # rows = list of (id, arrival, burst, priority)
+    priorities = [r[3] for r in rows]
+    bursts = [r[2] for r in rows]
+
+    if 1 in priorities:
+        return "PRIORITY"          # an urgent request is waiting
+    if max(bursts) - min(bursts) > 5:
+        return "SJF"               # burst times differ a lot
+    return "FCFS"                  # otherwise first come first served
+
+
+def run_scheduler():
+    # 1. read pending requests (the ready queue)
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""SELECT request_id, arrival_time, burst_time, priority
+                   FROM waste_request WHERE status = 'Pending'""")
+    rows = cur.fetchall()
+
+    if len(rows) == 0:
+        db.close()
+        return None
+
+    # 2. choose algorithm and build the input for the C program
+    algo = choose_algorithm(rows)
+    quantum = 2
+    input_text = algo + "\n" + str(quantum) + "\n" + str(len(rows)) + "\n"
+    for r in rows:
+        input_text = input_text + str(r[0]) + " " + str(r[1]) + " " + str(r[2]) + " " + str(r[3]) + "\n"
+
+    # 3. run the C scheduler
+    result = subprocess.run(["scheduler/scheduler.exe"],
+                            input=input_text, capture_output=True, text=True)
+
+    # 4. save results and mark requests as Scheduled
+    for line in result.stdout.strip().split("\n"):
+        p = line.split()
+        req_id = int(p[0])
+        cur.execute("""INSERT INTO schedule_result
+                       (request_id, algorithm, start_time, completion_time, waiting_time, turnaround_time)
+                       VALUES (%s, %s, %s, %s, %s, %s)""",
+                    (req_id, algo, int(p[1]), int(p[2]), int(p[3]), int(p[4])))
+        cur.execute("UPDATE waste_request SET status = 'Scheduled' WHERE request_id = %s", (req_id,))
+
+    db.commit()
+    db.close()
+    return algo
 
 @app.route("/")
 def home():
@@ -130,7 +179,33 @@ def make_request():
     db.close()
     return redirect("/dashboard")
 
-    
+@app.route("/run_scheduler", methods=["POST"])
+def run_scheduler_route():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    run_scheduler()          # the function we added in Part 1
+    return redirect("/results")
+
+
+@app.route("/results")
+def results():
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    cur = db.cursor()
+    cur.execute("""SELECT r.request_id, s.stop_name, r.waste_type, r.priority,
+                          sr.algorithm, sr.start_time, sr.completion_time,
+                          sr.waiting_time, sr.turnaround_time
+                   FROM schedule_result sr
+                   JOIN waste_request r ON sr.request_id = r.request_id
+                   JOIN stop s ON r.stop_id = s.stop_id
+                   ORDER BY sr.result_id DESC""")
+    rows = cur.fetchall()
+    db.close()
+    return render_template("results.html", rows=rows)
+
 @app.route("/logout")
 def logout():
     session.clear()
