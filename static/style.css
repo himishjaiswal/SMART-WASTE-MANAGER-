@@ -1,0 +1,92 @@
+body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(to bottom right, #c8e6c9, #e8f5e9);
+    margin: 0 auto;
+    padding: 20px;
+    max-width: 950px;
+    min-height: 100vh;
+    color: #333;
+}
+
+/* page title on dashboard and results (not the ones inside boxes) */
+body > h2 {
+    background-color: #2e7d32;
+    color: white;
+    padding: 18px 25px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+}
+
+h2, h3 {
+    color: #2e7d32;
+}
+
+/* white cards */
+.box {
+    background-color: white;
+    padding: 22px;
+    margin-bottom: 22px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+/* form fields */
+input, select {
+    padding: 10px;
+    width: 100%;
+    max-width: 350px;
+    margin-top: 4px;
+    margin-bottom: 12px;
+    border: 1px solid #bbbbbb;
+    border-radius: 6px;
+    font-size: 15px;
+    box-sizing: border-box;
+}
+input:focus, select:focus {
+    border-color: #2e7d32;
+    outline: none;
+}
+
+/* buttons */
+button {
+    background-color: #2e7d32;
+    color: white;
+    border: none;
+    padding: 10px 22px;
+    border-radius: 6px;
+    font-size: 15px;
+    cursor: pointer;
+}
+button:hover {
+    background-color: #1b5e20;
+}
+
+/* tables */
+table {
+    border-collapse: collapse;
+    width: 100%;
+    background-color: white;
+}
+th {
+    background-color: #2e7d32;
+    color: white;
+    padding: 10px;
+}
+td {
+    padding: 10px;
+    border-bottom: 1px solid #dddddd;
+    text-align: center;
+}
+tr:hover td {
+    background-color: #f1f8e9;
+}
+
+/* links */
+a {
+    color: #2e7d32;
+    font-weight: bold;
+    text-decoration: none;
+}
+a:hover {
+    text-decoration: underline;
+}

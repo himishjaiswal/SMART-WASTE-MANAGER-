@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html>
-<head><title>Login</title></head>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
-    <h2>Login</h2>
-    {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
-    <form method="POST">
-        Email: <input type="email" name="email" required><br><br>
-        Password: <input type="password" name="password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
-    <p>New user? <a href="/register">Register</a></p>
+    <div class="box">
+        <h2>Login</h2>
+        {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+        <form method="POST">
+            Email:<br>
+            <input type="email" name="email" required><br>
+            Password:<br>
+            <input type="password" name="password" required><br><br>
+            <button type="submit">Login</button>
+        </form>
+        <p>New user? <a href="/register">Register</a></p>
+    </div>
 </body>
 </html>

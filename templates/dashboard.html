@@ -1,46 +1,57 @@
 <!DOCTYPE html>
 <html>
-<head><title>Dashboard</title></head>
+<head>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
     <h2>Welcome, {{ name }}</h2>
-    <a href="/logout">Logout</a> |
-<a href="/results">View results</a>
+    <a href="/results">View results</a> |
+    <a href="/logout">Logout</a>
+    <br><br>
 
-<h3>Scheduler</h3>
-<form method="POST" action="/run_scheduler">
-    <button type="submit">Run scheduler on pending requests</button>
-</form>
+    <div class="box">
+        <h3>New waste collection request</h3>
+        <form method="POST" action="/request">
+            Stop:<br>
+            <select name="stop_id">
+                {% for s in stops %}
+                <option value="{{ s[0] }}">{{ s[1] }}</option>
+                {% endfor %}
+            </select><br>
+            Waste type:<br>
+            <select name="waste_type">
+                <option>General</option>
+                <option>Wet</option>
+                <option>Hazardous</option>
+            </select><br>
+            Quantity (kg):<br>
+            <input type="number" name="quantity" min="1" required><br><br>
+            <button type="submit">Submit request</button>
+        </form>
+    </div>
 
-    <h3>New waste collection request</h3>
-    <form method="POST" action="/request">
-        Stop:
-        <select name="stop_id">
-            {% for s in stops %}
-            <option value="{{ s[0] }}">{{ s[1] }}</option>
+    <div class="box">
+        <h3>Scheduler</h3>
+        <form method="POST" action="/run_scheduler">
+            <button type="submit">Run scheduler on pending requests</button>
+        </form>
+    </div>
+
+    <div class="box">
+        <h3>My requests</h3>
+        <table>
+            <tr>
+                <th>ID</th><th>Stop</th><th>Waste</th><th>Kg</th>
+                <th>Arrival</th><th>Burst</th><th>Priority</th><th>Status</th>
+            </tr>
+            {% for r in requests %}
+            <tr>
+                <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
+                <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td><td>{{ r[7] }}</td>
+            </tr>
             {% endfor %}
-        </select><br><br>
-        Waste type:
-        <select name="waste_type">
-            <option>General</option>
-            <option>Wet</option>
-            <option>Hazardous</option>
-        </select><br><br>
-        Quantity (kg): <input type="number" name="quantity" min="1" required><br><br>
-        <button type="submit">Submit request</button>
-    </form>
-
-    <h3>My requests</h3>
-    <table border="1" cellpadding="5">
-        <tr>
-            <th>ID</th><th>Stop</th><th>Waste</th><th>Kg</th>
-            <th>Arrival</th><th>Burst</th><th>Priority</th><th>Status</th>
-        </tr>
-        {% for r in requests %}
-        <tr>
-            <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
-            <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td><td>{{ r[7] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+        </table>
+    </div>
 </body>
 </html>
