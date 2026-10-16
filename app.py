@@ -37,41 +37,46 @@ def choose_algorithm(rows):
 
 
 def run_scheduler():
-    # 1. read pending requests (the ready queue)
     db = get_db()
     cur = db.cursor()
-    cur.execute("""SELECT request_id, arrival_time, burst_time, priority
-                   FROM waste_request WHERE status = 'Pending'""")
-    rows = cur.fetchall()
+    try:
+        # lock the pending rows so another run cannot take them at the same time
+        cur.execute("""SELECT request_id, arrival_time, burst_time, priority
+                       FROM waste_request WHERE status = 'Pending' FOR UPDATE""")
+        rows = cur.fetchall()
 
-    if len(rows) == 0:
+        if len(rows) == 0:
+            db.rollback()
+            return None
+
+        algo = choose_algorithm(rows)
+        quantum = 2
+
+        # make the input text for the C program
+        text = algo + "\n" + str(quantum) + "\n" + str(len(rows)) + "\n"
+        for r in rows:
+            text = text + str(r[0]) + " " + str(r[1]) + " " + str(r[2]) + " " + str(r[3]) + "\n"
+
+        result = subprocess.run(["scheduler/scheduler.exe"],
+                                input=text, capture_output=True, text=True)
+
+        # save every result line
+        for line in result.stdout.strip().split("\n"):
+            p = line.split()
+            rid = int(p[0])
+            cur.execute("""INSERT INTO schedule_result
+                           (request_id, algorithm, start_time, completion_time, waiting_time, turnaround_time)
+                           VALUES (%s, %s, %s, %s, %s, %s)""",
+                        (rid, algo, int(p[1]), int(p[2]), int(p[3]), int(p[4])))
+            cur.execute("UPDATE waste_request SET status = 'Scheduled' WHERE request_id = %s", (rid,))
+
+        db.commit()      # save everything together
+        return algo
+    except Exception:
+        db.rollback()    # something failed, so undo everything
+        raise
+    finally:
         db.close()
-        return None
-
-    # 2. choose algorithm and build the input for the C program
-    algo = choose_algorithm(rows)
-    quantum = 2
-    input_text = algo + "\n" + str(quantum) + "\n" + str(len(rows)) + "\n"
-    for r in rows:
-        input_text = input_text + str(r[0]) + " " + str(r[1]) + " " + str(r[2]) + " " + str(r[3]) + "\n"
-
-    # 3. run the C scheduler
-    result = subprocess.run(["scheduler/scheduler.exe"],
-                            input=input_text, capture_output=True, text=True)
-
-    # 4. save results and mark requests as Scheduled
-    for line in result.stdout.strip().split("\n"):
-        p = line.split()
-        req_id = int(p[0])
-        cur.execute("""INSERT INTO schedule_result
-                       (request_id, algorithm, start_time, completion_time, waiting_time, turnaround_time)
-                       VALUES (%s, %s, %s, %s, %s, %s)""",
-                    (req_id, algo, int(p[1]), int(p[2]), int(p[3]), int(p[4])))
-        cur.execute("UPDATE waste_request SET status = 'Scheduled' WHERE request_id = %s", (req_id,))
-
-    db.commit()
-    db.close()
-    return algo
 
 @app.route("/")
 def home():
