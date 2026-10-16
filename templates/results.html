@@ -1,24 +1,41 @@
 <!DOCTYPE html>
 <html>
-<head><title>Schedule Results</title></head>
+<head>
+    <title>Schedule Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
 <body>
     <h2>Schedule results</h2>
-    <a href="/dashboard">Back to dashboard</a>
-
+    <a href="/dashboard">Back to dashboard</a> |
+    <a href="/logout">Logout</a>
     <br><br>
-    <table border="1" cellpadding="5">
-        <tr>
-            <th>Request</th><th>Stop</th><th>Waste</th><th>Priority</th>
-            <th>Algorithm</th><th>Start</th><th>Completion</th>
-            <th>Waiting</th><th>Turnaround</th>
-        </tr>
-        {% for r in rows %}
-        <tr>
-            <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
-            <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td>
-            <td>{{ r[7] }}</td><td>{{ r[8] }}</td>
-        </tr>
-        {% endfor %}
-    </table>
+
+    <div class="box">
+        <table>
+            <tr>
+                <th>Request</th><th>Stop</th><th>Waste</th><th>Priority</th>
+                <th>Algorithm</th><th>Start</th><th>Completion</th>
+                <th>Waiting</th><th>Turnaround</th><th>Status</th><th>Action</th>
+            </tr>
+            {% for r in rows %}
+            <tr>
+                <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
+                <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td>
+                <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
+                <td>
+                    {% if r[9] == 'Scheduled' %}
+                    <form method="POST" action="/start/{{ r[0] }}">
+                        <button type="submit">Start</button>
+                    </form>
+                    {% elif r[9] == 'In Progress' %}
+                    <form method="POST" action="/complete/{{ r[0] }}">
+                        <button type="submit">Complete</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
 </body>
 </html>

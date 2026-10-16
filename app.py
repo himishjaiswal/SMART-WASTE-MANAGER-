@@ -202,7 +202,7 @@ def results():
     cur = db.cursor()
     cur.execute("""SELECT r.request_id, s.stop_name, r.waste_type, r.priority,
                           sr.algorithm, sr.start_time, sr.completion_time,
-                          sr.waiting_time, sr.turnaround_time
+                          sr.waiting_time, sr.turnaround_time, r.status
                    FROM schedule_result sr
                    JOIN waste_request r ON sr.request_id = r.request_id
                    JOIN stop s ON r.stop_id = s.stop_id
@@ -210,6 +210,79 @@ def results():
     rows = cur.fetchall()
     db.close()
     return render_template("results.html", rows=rows)
+
+@app.route("/start/<int:req_id>", methods=["POST"])
+def start_request(req_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    cur = db.cursor()
+    try:
+        # lock the request first and check it is still Scheduled
+        cur.execute("SELECT status FROM waste_request WHERE request_id = %s FOR UPDATE", (req_id,))
+        row = cur.fetchone()
+        if row is None or row[0] != "Scheduled":
+            db.rollback()
+            return redirect("/results")
+
+        # always lock the vehicle first, then the worker (same order every time)
+        cur.execute("SELECT vehicle_id FROM vehicle WHERE available = TRUE LIMIT 1 FOR UPDATE")
+        vehicle = cur.fetchone()
+        cur.execute("SELECT worker_id FROM worker WHERE available = TRUE LIMIT 1 FOR UPDATE")
+        worker = cur.fetchone()
+
+        if vehicle is None or worker is None:
+            db.rollback()          # no free vehicle or worker, request stays Scheduled
+            return redirect("/results")
+
+        cur.execute("INSERT INTO assignment (request_id, worker_id, vehicle_id) VALUES (%s, %s, %s)",
+                    (req_id, worker[0], vehicle[0]))
+        cur.execute("UPDATE vehicle SET available = FALSE WHERE vehicle_id = %s", (vehicle[0],))
+        cur.execute("UPDATE worker SET available = FALSE WHERE worker_id = %s", (worker[0],))
+        cur.execute("UPDATE waste_request SET status = 'In Progress' WHERE request_id = %s", (req_id,))
+
+        db.commit()                # all four changes saved together
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+    return redirect("/results")
+
+@app.route("/complete/<int:req_id>", methods=["POST"])
+def complete_request(req_id):
+    if "user_id" not in session:
+        return redirect("/login")
+
+    db = get_db()
+    cur = db.cursor()
+    try:
+        # lock the request and check it is really In Progress
+        cur.execute("SELECT status FROM waste_request WHERE request_id = %s FOR UPDATE", (req_id,))
+        row = cur.fetchone()
+        if row is None or row[0] != "In Progress":
+            db.rollback()
+            return redirect("/results")
+
+        # find which worker and vehicle were given to this request
+        cur.execute("""SELECT assignment_id, worker_id, vehicle_id FROM assignment
+                       WHERE request_id = %s AND finished_at IS NULL""", (req_id,))
+        a = cur.fetchone()
+
+        # same lock order as start: vehicle first, then worker
+        cur.execute("UPDATE vehicle SET available = TRUE WHERE vehicle_id = %s", (a[2],))
+        cur.execute("UPDATE worker SET available = TRUE WHERE worker_id = %s", (a[1],))
+        cur.execute("UPDATE assignment SET finished_at = NOW() WHERE assignment_id = %s", (a[0],))
+        cur.execute("UPDATE waste_request SET status = 'Completed' WHERE request_id = %s", (req_id,))
+
+        db.commit()
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+    return redirect("/results")
 
 @app.route("/logout")
 def logout():
