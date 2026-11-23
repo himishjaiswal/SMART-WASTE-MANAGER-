@@ -24,6 +24,10 @@ def get_db():
         database="waste_db"
     )
 
+
+def is_admin():
+    return session.get("role") == "admin"
+
 def choose_algorithm(rows):
     # rows = list of (id, arrival, burst, priority)
     priorities = [r[3] for r in rows]
@@ -140,21 +144,31 @@ def dashboard():
     db = get_db()
     cur = db.cursor()
 
-    # stops the user can choose from (not the depot or dump site)
     cur.execute("SELECT stop_id, stop_name FROM stop WHERE stop_name NOT IN ('Depot', 'Dump Site')")
     stops = cur.fetchall()
 
-    # this user's requests, joined with the stop name
-    cur.execute("""SELECT r.request_id, s.stop_name, r.waste_type, r.quantity_kg,
-                          r.arrival_time, r.burst_time, r.priority, r.status
-                   FROM waste_request r JOIN stop s ON r.stop_id = s.stop_id
-                   WHERE r.user_id = %s ORDER BY r.request_id DESC""",
-                (session["user_id"],))
+    if is_admin():
+        # admin sees every user's requests
+        cur.execute("""SELECT r.request_id, s.stop_name, r.waste_type, r.quantity_kg,
+                              r.arrival_time, r.burst_time, r.priority, r.status, u.name
+                       FROM waste_request r
+                       JOIN stop s ON r.stop_id = s.stop_id
+                       JOIN users u ON r.user_id = u.user_id
+                       ORDER BY r.request_id DESC""")
+    else:
+        # normal user sees only their own requests
+        cur.execute("""SELECT r.request_id, s.stop_name, r.waste_type, r.quantity_kg,
+                              r.arrival_time, r.burst_time, r.priority, r.status, u.name
+                       FROM waste_request r
+                       JOIN stop s ON r.stop_id = s.stop_id
+                       JOIN users u ON r.user_id = u.user_id
+                       WHERE r.user_id = %s
+                       ORDER BY r.request_id DESC""", (session["user_id"],))
     requests = cur.fetchall()
     db.close()
 
     return render_template("dashboard.html", name=session["name"],
-                           stops=stops, requests=requests)
+                           stops=stops, requests=requests, role=session["role"])
 
 
 @app.route("/request", methods=["POST"])
@@ -188,8 +202,10 @@ def make_request():
 def run_scheduler_route():
     if "user_id" not in session:
         return redirect("/login")
+    if not is_admin():
+        return redirect("/dashboard")
 
-    run_scheduler()          # the function we added in Part 1
+    run_scheduler()
     return redirect("/results")
 
 
@@ -209,12 +225,14 @@ def results():
                    ORDER BY sr.result_id DESC""")
     rows = cur.fetchall()
     db.close()
-    return render_template("results.html", rows=rows)
+    return render_template("results.html", rows=rows, role=session["role"])
 
 @app.route("/start/<int:req_id>", methods=["POST"])
 def start_request(req_id):
     if "user_id" not in session:
         return redirect("/login")
+    if not is_admin():
+        return redirect("/dashboard")
 
     db = get_db()
     cur = db.cursor()
@@ -254,6 +272,8 @@ def start_request(req_id):
 def complete_request(req_id):
     if "user_id" not in session:
         return redirect("/login")
+    if not is_admin():
+        return redirect("/dashboard")
 
     db = get_db()
     cur = db.cursor()

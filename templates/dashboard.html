@@ -31,23 +31,25 @@
         </form>
     </div>
 
+    {% if role == 'admin' %}
     <div class="box">
         <h3>Scheduler</h3>
         <form method="POST" action="/run_scheduler">
             <button type="submit">Run scheduler on pending requests</button>
         </form>
     </div>
+    {% endif %}
 
     <div class="box">
-        <h3>My requests</h3>
+        <h3>{% if role == 'admin' %}All requests{% else %}My requests{% endif %}</h3>
         <table>
             <tr>
-                <th>ID</th><th>Stop</th><th>Waste</th><th>Kg</th>
+                <th>ID</th><th>User</th><th>Stop</th><th>Waste</th><th>Kg</th>
                 <th>Arrival</th><th>Burst</th><th>Priority</th><th>Status</th>
             </tr>
             {% for r in requests %}
             <tr>
-                <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
+                <td>{{ r[0] }}</td><td>{{ r[8] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
                 <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td><td>{{ r[7] }}</td>
             </tr>
             {% endfor %}
