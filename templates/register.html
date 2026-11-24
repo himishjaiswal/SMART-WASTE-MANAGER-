@@ -5,8 +5,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="box">
-        <h2>Register</h2>
+    <div class="auth-box">
+        <h2>Smart Waste Collection</h2>
+        <p class="tagline">Create your account</p>
         {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
         <form method="POST">
             Name:<br>

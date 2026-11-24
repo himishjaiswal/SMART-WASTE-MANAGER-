@@ -3,12 +3,12 @@ body {
     background: linear-gradient(to bottom right, #c8e6c9, #e8f5e9);
     margin: 0 auto;
     padding: 20px;
-    max-width: 950px;
+    max-width: 1200px;
     min-height: 100vh;
     color: #333;
 }
 
-/* page title on dashboard and results (not the ones inside boxes) */
+/* page title on dashboard and results  */
 body > h2 {
     background-color: #2e7d32;
     color: white;
@@ -101,3 +101,80 @@ a:hover {
 .scheduled { background-color: #1976d2; }
 .inprogress { background-color: #ef6c00; }
 .completed { background-color: #2e7d32; }
+/* top navigation bar */
+.navbar {
+    background-color: #2e7d32;
+    padding: 14px 25px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.navbar .title {
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+}
+.navbar span {
+    color: white;
+}
+.navbar a {
+    color: white;
+    margin-left: 18px;
+}
+/*  wide tables inside the white box */
+.box {
+    overflow-x: auto;
+}
+/* login and register pages */
+.auth-box {
+    max-width: 380px;
+    margin: 60px auto;
+    background-color: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+.auth-box h2 {
+    text-align: center;
+    margin-top: 0;
+}
+.auth-box .tagline {
+    text-align: center;
+    color: #666;
+    margin-bottom: 20px;
+}
+.auth-box input {
+    width: 100%;
+}
+.auth-box button {
+    width: 100%;
+}
+.auth-box p {
+    text-align: center;
+}
+/* finishing  */
+h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+}
+table {
+    margin-top: 5px;
+}
+input:focus, select:focus {
+    border-color: #2e7d32;
+    outline: none;
+}
+button {
+    transition: background-color 0.2s;
+}
+tr:hover td {
+    background-color: #f1f8e9;
+}
+.footer {
+    text-align: center;
+    color: #666;
+    font-size: 13px;
+    margin: 20px 0;
+}
