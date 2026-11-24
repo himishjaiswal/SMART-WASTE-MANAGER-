@@ -53,6 +53,18 @@ def run_scheduler():
             db.rollback()
             return None
 
+        # aging: every 10 minutes a request has waited, its priority number drops by 1
+        # (a smaller number is more urgent, and it never goes below 1)
+        now = int((time.time() - route_start) / 60)
+        aged_rows = []
+        for r in rows:
+            waited = now - r[1]                      # minutes since it arrived
+            if waited < 0:
+                waited = 0                           # arrival clock reset after a restart
+            new_priority = max(1, r[3] - waited // 10)
+            aged_rows.append((r[0], r[1], r[2], new_priority))
+        rows = aged_rows
+
         algo = choose_algorithm(rows)
         quantum = 2
 
@@ -225,7 +237,8 @@ def results():
                    ORDER BY sr.result_id DESC""")
     rows = cur.fetchall()
     db.close()
-    return render_template("results.html", rows=rows, role=session["role"])
+    return render_template("results.html", rows=rows, role=session["role"],
+                           msg=request.args.get("msg"))
 
 @app.route("/start/<int:req_id>", methods=["POST"])
 def start_request(req_id):
@@ -237,22 +250,25 @@ def start_request(req_id):
     db = get_db()
     cur = db.cursor()
     try:
-        # lock the request first and check it is still Scheduled
-        cur.execute("SELECT status FROM waste_request WHERE request_id = %s FOR UPDATE", (req_id,))
+        # lock the request and check it is Scheduled
+        cur.execute("SELECT status, quantity_kg FROM waste_request WHERE request_id = %s FOR UPDATE", (req_id,))
         row = cur.fetchone()
         if row is None or row[0] != "Scheduled":
             db.rollback()
             return redirect("/results")
 
-        # always lock the vehicle first, then the worker (same order every time)
-        cur.execute("SELECT vehicle_id FROM vehicle WHERE available = TRUE LIMIT 1 FOR UPDATE")
+        # lock order is always: vehicle first, then worker
+        # pick the smallest free vehicle that can carry this load
+        cur.execute("""SELECT vehicle_id FROM vehicle
+                       WHERE available = TRUE AND capacity_kg >= %s
+                       ORDER BY capacity_kg LIMIT 1 FOR UPDATE""", (row[1],))
         vehicle = cur.fetchone()
         cur.execute("SELECT worker_id FROM worker WHERE available = TRUE LIMIT 1 FOR UPDATE")
         worker = cur.fetchone()
 
         if vehicle is None or worker is None:
-            db.rollback()          # no free vehicle or worker, request stays Scheduled
-            return redirect("/results")
+            db.rollback()          # nothing free that fits, request stays Scheduled
+            return redirect("/results?msg=No free vehicle or worker fits this request")
 
         cur.execute("INSERT INTO assignment (request_id, worker_id, vehicle_id) VALUES (%s, %s, %s)",
                     (req_id, worker[0], vehicle[0]))
@@ -260,13 +276,14 @@ def start_request(req_id):
         cur.execute("UPDATE worker SET available = FALSE WHERE worker_id = %s", (worker[0],))
         cur.execute("UPDATE waste_request SET status = 'In Progress' WHERE request_id = %s", (req_id,))
 
-        db.commit()                # all four changes saved together
+        db.commit()
     except Exception:
         db.rollback()
         raise
     finally:
         db.close()
     return redirect("/results")
+
 
 @app.route("/complete/<int:req_id>", methods=["POST"])
 def complete_request(req_id):
@@ -289,6 +306,9 @@ def complete_request(req_id):
         cur.execute("""SELECT assignment_id, worker_id, vehicle_id FROM assignment
                        WHERE request_id = %s AND finished_at IS NULL""", (req_id,))
         a = cur.fetchone()
+        if a is None:
+            db.rollback()
+            return redirect("/results")
 
         # same lock order as start: vehicle first, then worker
         cur.execute("UPDATE vehicle SET available = TRUE WHERE vehicle_id = %s", (a[2],))

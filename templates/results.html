@@ -1,7 +1,9 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <title>Schedule Results</title>
+    <meta http-equiv="refresh" content="15">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
@@ -10,6 +12,7 @@
     <a href="/logout">Logout</a>
     <br><br>
 
+    {% if msg %}<p style="color:red">{{ msg }}</p>{% endif %}
     <div class="box">
         <table>
             <tr>
@@ -19,9 +22,16 @@
             </tr>
             {% for r in rows %}
             <tr>
-                <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
-                <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td>
-                <td>{{ r[7] }}</td><td>{{ r[8] }}</td><td>{{ r[9] }}</td>
+                <td>{{ r[0] }}</td>
+                <td>{{ r[1] }}</td>
+                <td>{{ r[2] }}</td>
+                <td>{{ r[3] }}</td>
+                <td>{{ r[4] }}</td>
+                <td>{{ r[5] }}</td>
+                <td>{{ r[6] }}</td>
+                <td>{{ r[7] }}</td>
+                <td>{{ r[8] }}</td>
+                <td><span class="status {{ r[9]|replace(' ', '')|lower }}">{{ r[9] }}</span></td>
                 <td>
                     {% if role == 'admin' and r[9] == 'Scheduled' %}
                     <form method="POST" action="/start/{{ r[0] }}">

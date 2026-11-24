@@ -90,3 +90,14 @@ a {
 a:hover {
     text-decoration: underline;
 }
+/* status labels */
+.status {
+    padding: 3px 10px;
+    border-radius: 10px;
+    color: white;
+    font-size: 13px;
+}
+.pending { background-color: #f9a825; }
+.scheduled { background-color: #1976d2; }
+.inprogress { background-color: #ef6c00; }
+.completed { background-color: #2e7d32; }
